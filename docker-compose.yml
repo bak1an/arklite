@@ -1,0 +1,27 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: devrootpassword
+      MYSQL_DATABASE: devdb
+      MYSQL_USER: devuser
+      MYSQL_PASSWORD: devpass
+    volumes:
+      - ./tmp/mysql_data:/var/lib/mysql
+      - ./dev/mysql_init:/docker-entrypoint-initdb.d # Optional: for initialization scripts
+
+  adminer:
+    image: adminer:5
+    container_name: adminer
+    ports:
+      - "8080:8080"
+    environment:
+      ADMINER_DESIGN: ng9
+      ADMINER_DEFAULT_SERVER: mysql
+      ADMINER_DEFAULT_USER: devuser
+      ADMINER_DEFAULT_PASS: devpass
+    depends_on:
+      - mysql
