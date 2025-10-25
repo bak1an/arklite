@@ -1,6 +1,7 @@
 services:
   mysql:
     image: mysql:8.0
+    pull_policy: weekly
     container_name: mysql
     ports:
       - "3306:3306"
@@ -11,10 +12,10 @@ services:
       MYSQL_PASSWORD: devpass
     volumes:
       - ./tmp/mysql_data:/var/lib/mysql
-      - ./dev/mysql_init:/docker-entrypoint-initdb.d # Optional: for initialization scripts
 
   adminer:
     image: adminer:5
+    pull_policy: weekly
     container_name: adminer
     ports:
       - "8080:8080"
