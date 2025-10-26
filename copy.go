@@ -93,13 +93,19 @@ func (c *Copier) Copy() error {
 	var batchStartAt time.Time
 	var batchDuration time.Duration
 
+	partitionQuery := ""
+	if c.opts.Partition != "" {
+		partitionQuery = fmt.Sprintf("PARTITION (%s)", c.opts.Partition)
+	}
+	query := fmt.Sprintf(
+		"SELECT %s FROM %s %s WHERE id > ? ORDER BY id ASC LIMIT ?",
+		allColumns,
+		c.schema.Table,
+		partitionQuery,
+	)
+
 	for {
 		batchStartAt = time.Now()
-		query := fmt.Sprintf(
-			"SELECT %s FROM %s WHERE id > ? ORDER BY id ASC LIMIT ?",
-			allColumns,
-			c.schema.Table,
-		)
 		rows, err := c.mysqlDb.Query(query, maxSeenId, c.opts.ReadBatchSize)
 		if err != nil {
 			return err
