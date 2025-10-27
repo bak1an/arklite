@@ -32,9 +32,10 @@ func main() {
 	mysqlTable := pflag.StringP("table", "t", "", "(required) MySQL table")
 	sqliteFile := pflag.StringP("output", "o", "", "(required) SQLite file to write to")
 	forceOverwrite := pflag.BoolP("force", "f", false, "Force overwrite existing SQLite file")
+	partition := pflag.String("partition", "", "MySQL partition to copy")
 	writeBatchSize := pflag.Int("write-batch", 10000, "Write batch size")
 	readBatchSize := pflag.Int("read-batch", 100000, "Read batch size")
-	partition := pflag.String("partition", "", "MySQL partition to copy")
+	preview := pflag.Bool("preview", false, "Preivew the SQL queries. Does not perform actual data copy.")
 	verbose := pflag.Bool("verbose", false, "Verbose output")
 	version := pflag.BoolP("version", "v", false, "Print version info")
 
@@ -104,6 +105,28 @@ func main() {
 	if err := mysqlDb.Ping(); err != nil {
 		slog.Error("Error pinging MySQL", "error", err)
 		os.Exit(1)
+	}
+
+	if *preview {
+		fmt.Println("Queries to be executed:")
+		schema, err := ReadSchema(mysqlDb, *mysqlTable, *partition)
+		if err != nil {
+			slog.Error("Error reading schema", "error", err)
+			os.Exit(1)
+		}
+		createTableQuery := schema.SQLiteCreateTableQuery()
+		selectQuery := schema.MySQLSelectQuery()
+		fmt.Printf(
+			"\nWill create sqlite table in %s with:\n%s\n\n",
+			*sqliteFile, createTableQuery,
+		)
+		fmt.Printf("Will select data from MySQL with:\n%s\n\n", selectQuery)
+
+		fmt.Printf(
+			"Reads in batches of %d rows from MySQL and writes to SQLite in batches of %d rows.\n",
+			*readBatchSize, *writeBatchSize,
+		)
+		os.Exit(0)
 	}
 
 	if _, err := os.Stat(*sqliteFile); err == nil {

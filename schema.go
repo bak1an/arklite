@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"reflect"
 	"strings"
 )
 
@@ -11,22 +10,33 @@ type ColumnInfo struct {
 	name       string
 	mysqlType  string
 	sqliteType string
-	scanType   reflect.Type
 }
 
 type Schema struct {
-	Table   string
-	Columns []*ColumnInfo
+	Table       string
+	Partition   string
+	IdColumn    string
+	Columns     []*ColumnInfo
+	columnNames []string
+	allColumns  string
 }
 
-func ReadSchema(db *sql.DB, table string) (*Schema, error) {
+func ReadSchema(db *sql.DB, table string, partition string) (*Schema, error) {
 	columnInfos, err := fetchColumnsInfo(db, table)
 	if err != nil {
 		return nil, err
 	}
+	columnNames := make([]string, len(columnInfos))
+	for i, column := range columnInfos {
+		columnNames[i] = column.name
+	}
 	schema := &Schema{
-		Table:   table,
-		Columns: columnInfos,
+		Table:       table,
+		Columns:     columnInfos,
+		Partition:   partition,
+		IdColumn:    "id",
+		columnNames: columnNames,
+		allColumns:  strings.Join(columnNames, ", "),
 	}
 	return schema, nil
 }
@@ -40,8 +50,17 @@ func (s *Schema) ColumnIndex(name string) int {
 	return -1
 }
 
+func (s *Schema) MySQLSelectQuery() string {
+	query := fmt.Sprintf("SELECT %s FROM %s", s.allColumns, s.Table)
+	if s.Partition != "" {
+		query += fmt.Sprintf(" PARTITION (%s)", s.Partition)
+	}
+	query += fmt.Sprintf("\nWHERE %s > ? ORDER BY %s ASC LIMIT ?", s.IdColumn, s.IdColumn)
+	return query
+}
+
 func (s *Schema) SQLiteCreateTableQuery() string {
-	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (", s.Table)
+	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (\n", s.Table)
 
 	columns := make([]string, len(s.Columns))
 	for i, columnInfo := range s.Columns {
@@ -121,7 +140,6 @@ func fetchColumnsInfo(db *sql.DB, table string) ([]*ColumnInfo, error) {
 			name:       column.Name(),
 			mysqlType:  columnType,
 			sqliteType: sqliteType(columnType),
-			scanType:   column.ScanType(),
 		}
 	}
 	return columnInfos, nil

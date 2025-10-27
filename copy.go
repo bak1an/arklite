@@ -29,7 +29,7 @@ type Copier struct {
 }
 
 func NewCopier(mysqlDb *sql.DB, sqliteDb *sql.DB, opts CopierOptions) (*Copier, error) {
-	schema, err := ReadSchema(mysqlDb, opts.Table)
+	schema, err := ReadSchema(mysqlDb, opts.Table, opts.Partition)
 	if err != nil {
 		return nil, err
 	}
@@ -84,25 +84,16 @@ func (c *Copier) Copy() error {
 	for i := range colsCount {
 		colsNames[i] = c.schema.Columns[i].name
 	}
-	allColumns := strings.Join(colsNames, ", ")
-	idColumnIndex := c.schema.ColumnIndex("id")
+
+	idColumnIndex := c.schema.ColumnIndex(c.schema.IdColumn)
 	if idColumnIndex == -1 {
-		return fmt.Errorf("id column not found")
+		return fmt.Errorf("%s column not found", c.schema.IdColumn)
 	}
 
 	var batchStartAt time.Time
 	var batchDuration time.Duration
 
-	partitionQuery := ""
-	if c.opts.Partition != "" {
-		partitionQuery = fmt.Sprintf("PARTITION (%s)", c.opts.Partition)
-	}
-	query := fmt.Sprintf(
-		"SELECT %s FROM %s %s WHERE id > ? ORDER BY id ASC LIMIT ?",
-		allColumns,
-		c.schema.Table,
-		partitionQuery,
-	)
+	query := c.schema.MySQLSelectQuery()
 
 	for {
 		batchStartAt = time.Now()
