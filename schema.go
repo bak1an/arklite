@@ -1,9 +1,14 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"strings"
+
+	"github.com/stephenafamo/bob/dialect/mysql"
+	"github.com/stephenafamo/bob/dialect/mysql/sm"
+	"github.com/stephenafamo/bob/dialect/sqlite"
 )
 
 type ColumnInfo struct {
@@ -50,21 +55,38 @@ func (s *Schema) ColumnIndex(name string) int {
 	return -1
 }
 
-func (s *Schema) MySQLSelectQuery() string {
-	query := fmt.Sprintf("SELECT %s FROM %s", s.allColumns, s.Table)
+func (s *Schema) MySQLSelectQuery(limit int64) string {
+	from := sm.From(mysql.Quote(s.Table))
 	if s.Partition != "" {
-		query += fmt.Sprintf(" PARTITION (%s)", s.Partition)
+		from = from.Partition(s.Partition)
 	}
-	query += fmt.Sprintf("\nWHERE %s > ? ORDER BY %s ASC LIMIT ?", s.IdColumn, s.IdColumn)
-	return query
+
+	cols := make([]any, len(s.columnNames))
+	for i, column := range s.columnNames {
+		cols[i] = mysql.Quote(column)
+	}
+
+	q := mysql.Select(
+		from,
+		sm.Columns(cols...),
+		sm.Where(mysql.Quote(s.IdColumn).GT(mysql.Placeholder(1))),
+		sm.OrderBy(mysql.Quote(s.IdColumn)).Asc(),
+		sm.Limit(limit),
+	)
+	sql, _, err := q.Build(context.Background())
+	if err != nil {
+		return ""
+	}
+
+	return sql
 }
 
 func (s *Schema) SQLiteCreateTableQuery() string {
-	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (\n", s.Table)
+	query := fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (\n", sqlite.Quote(s.Table))
 
 	columns := make([]string, len(s.Columns))
 	for i, columnInfo := range s.Columns {
-		columns[i] = fmt.Sprintf("  %s %s", columnInfo.name, columnInfo.sqliteType)
+		columns[i] = fmt.Sprintf("  %s %s", sqlite.Quote(columnInfo.name), columnInfo.sqliteType)
 		if columnInfo.name == "id" {
 			columns[i] += " PRIMARY KEY AUTOINCREMENT"
 		}
@@ -122,7 +144,18 @@ func sqliteType(mysqlType string) string {
 }
 
 func fetchColumnsInfo(db *sql.DB, table string) ([]*ColumnInfo, error) {
-	res, err := db.Query(fmt.Sprintf("SELECT * FROM %s WHERE 1=0", table))
+	q := mysql.Select(
+		sm.From(mysql.Quote(table)),
+		sm.Where(mysql.Raw("1 = 0")),
+		sm.Limit(1),
+	)
+
+	sql, _, err := q.Build(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := db.Query(sql)
 	if err != nil {
 		return nil, err
 	}

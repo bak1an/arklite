@@ -93,11 +93,11 @@ func (c *Copier) Copy() error {
 	var batchStartAt time.Time
 	var batchDuration time.Duration
 
-	query := c.schema.MySQLSelectQuery()
+	query := c.schema.MySQLSelectQuery(int64(c.opts.ReadBatchSize))
 
 	for {
 		batchStartAt = time.Now()
-		rows, err := c.mysqlDb.Query(query, maxSeenId, c.opts.ReadBatchSize)
+		rows, err := c.mysqlDb.Query(query, maxSeenId)
 		if err != nil {
 			return err
 		}

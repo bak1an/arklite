@@ -115,7 +115,7 @@ func main() {
 			os.Exit(1)
 		}
 		createTableQuery := schema.SQLiteCreateTableQuery()
-		selectQuery := schema.MySQLSelectQuery()
+		selectQuery := schema.MySQLSelectQuery(int64(*readBatchSize))
 		fmt.Printf(
 			"\nWill create sqlite table in %s with:\n%s\n\n",
 			*sqliteFile, createTableQuery,
