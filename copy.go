@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"github.com/stephenafamo/bob/dialect/sqlite"
 )
 
 type RowData []any
@@ -94,10 +95,15 @@ func (c *Copier) Copy() error {
 	var batchDuration time.Duration
 
 	query := c.schema.MySQLSelectQuery(int64(c.opts.ReadBatchSize))
+	stmt, err := c.mysqlDb.Prepare(query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
 
 	for {
 		batchStartAt = time.Now()
-		rows, err := c.mysqlDb.Query(query, maxSeenId)
+		rows, err := stmt.Query(maxSeenId)
 		if err != nil {
 			return err
 		}
@@ -144,16 +150,14 @@ func (c *Copier) Copy() error {
 
 func (c *Copier) sqliteWriter(inputs <-chan RowData) error {
 	columns := make([]string, len(c.schema.Columns))
-	placeholders := make([]string, len(c.schema.Columns))
 	for i, column := range c.schema.Columns {
-		columns[i] = column.name
-		placeholders[i] = "?"
+		columns[i] = sqlite.Quote(column.name).String()
 	}
 	insertQuery := fmt.Sprintf(
 		"INSERT INTO %s (%s) VALUES (%s)",
 		c.schema.Table,
 		strings.Join(columns, ", "),
-		strings.Join(placeholders, ", "),
+		sqlite.Placeholder(uint(len(columns))),
 	)
 	stmt, err := c.sqliteDb.Prepare(insertQuery)
 	if err != nil {
