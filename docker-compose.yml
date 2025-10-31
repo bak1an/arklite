@@ -1,4 +1,6 @@
 services:
+  # quick console:
+  # docker compose exec -it mysql mysql -udevuser -pdevpass devdb
   mysql:
     image: mysql:8.0
     pull_policy: weekly
@@ -12,17 +14,3 @@ services:
       MYSQL_PASSWORD: devpass
     volumes:
       - ./tmp/mysql_data:/var/lib/mysql
-
-  adminer:
-    image: adminer:5
-    pull_policy: weekly
-    container_name: adminer
-    ports:
-      - "8080:8080"
-    environment:
-      ADMINER_DESIGN: ng9
-      ADMINER_DEFAULT_SERVER: mysql
-      ADMINER_DEFAULT_USER: devuser
-      ADMINER_DEFAULT_PASS: devpass
-    depends_on:
-      - mysql
