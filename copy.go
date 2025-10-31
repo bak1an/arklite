@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"strings"
 	"sync"
 	"time"
 
@@ -153,12 +152,9 @@ func (c *Copier) sqliteWriter(inputs <-chan RowData) error {
 	for i, column := range c.schema.Columns {
 		columns[i] = sqlite.Quote(column.name).String()
 	}
-	insertQuery := fmt.Sprintf(
-		"INSERT INTO %s (%s) VALUES (%s)",
-		c.schema.Table,
-		strings.Join(columns, ", "),
-		sqlite.Placeholder(uint(len(columns))),
-	)
+
+	insertQuery := c.schema.SqliteInsertQuery()
+
 	stmt, err := c.sqliteDb.Prepare(insertQuery)
 	if err != nil {
 		return err

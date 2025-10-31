@@ -9,6 +9,7 @@ import (
 	"github.com/stephenafamo/bob/dialect/mysql"
 	"github.com/stephenafamo/bob/dialect/mysql/sm"
 	"github.com/stephenafamo/bob/dialect/sqlite"
+	"github.com/stephenafamo/bob/dialect/sqlite/im"
 )
 
 type ColumnInfo struct {
@@ -53,6 +54,19 @@ func (s *Schema) ColumnIndex(name string) int {
 		}
 	}
 	return -1
+}
+
+func (s *Schema) SqliteInsertQuery() string {
+	q := sqlite.Insert(
+		im.Into(sqlite.Quote(s.Table), s.columnNames...),
+		im.Values(sqlite.Placeholder(uint(len(s.columnNames)))),
+	)
+
+	sql, _, err := q.Build(context.Background())
+	if err != nil {
+		return ""
+	}
+	return sql
 }
 
 func (s *Schema) MySQLSelectQuery(limit int64) string {

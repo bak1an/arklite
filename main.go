@@ -122,6 +122,9 @@ func main() {
 		)
 		fmt.Printf("Will select data from MySQL with:\n%s\n\n", selectQuery)
 
+		insertQuery := schema.SqliteInsertQuery()
+		fmt.Printf("Will insert data into SQLite with:\n%s\n\n", insertQuery)
+
 		fmt.Printf(
 			"Reads in batches of %d rows from MySQL and writes to SQLite in batches of %d rows.\n",
 			*readBatchSize, *writeBatchSize,
