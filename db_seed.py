@@ -32,6 +32,10 @@ PARTITION BY RANGE (YEAR(datetime_column)) (
 )
 """
 
+DROP_TABLE_QUERY = """
+DROP TABLE IF EXISTS devtable
+"""
+
 INSERT_DATA_QUERY = """
 INSERT INTO devtable (bigint_column, datetime_column, float_column, string_column, blob_column, timestamp_column)
 VALUES (%s, %s, %s, %s, %s, %s)
@@ -62,6 +66,12 @@ def main() -> None:
         default=100000,
         help="Number of random rows to insert (default: 100000)",
     )
+    parser.add_argument(
+        "--drop",
+        "-d",
+        action="store_true",
+        help="Drop the table before inserting data",
+    )
     args = parser.parse_args()
     cnx = mysql.connector.connect(
         host="localhost",
@@ -71,6 +81,10 @@ def main() -> None:
     )
 
     cursor = cnx.cursor()
+
+    if args.drop:
+        print("Dropping table...")
+        cursor.execute(DROP_TABLE_QUERY)
 
     # Create table
     cursor.execute(CREATE_TABLE_QUERY)
