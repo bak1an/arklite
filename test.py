@@ -77,14 +77,15 @@ def verify_row_count(mysql_cnx, sqlite_cnx) -> bool:
 
 def verify_row_by_row(mysql_cnx, sqlite_cnx) -> bool:
     """Verify that all rows match between MySQL and SQLite."""
-    mysql_cursor = mysql_cnx.cursor(buffered=True)
+    mysql_cursor = mysql_cnx.cursor()
     sqlite_cursor = sqlite_cnx.cursor()
 
     # Get column names
     mysql_cursor.execute("SELECT * FROM devtable LIMIT 0")
+    mysql_cursor.fetchall()
     mysql_columns = [desc[0] for desc in mysql_cursor.description]
 
-    # Fetch all rows ordered by id and datetime_column (primary key)
+    # Fetch rows lazily one by one, ordered by id
     mysql_query = """
     SELECT id, bigint_column, datetime_column, float_column,
            string_column, blob_column, timestamp_column
@@ -102,21 +103,28 @@ def verify_row_by_row(mysql_cnx, sqlite_cnx) -> bool:
     mysql_cursor.execute(mysql_query)
     sqlite_cursor.execute(sqlite_query)
 
-    mysql_rows = mysql_cursor.fetchall()
-    sqlite_rows = sqlite_cursor.fetchall()
-
-    mysql_cursor.close()
-    sqlite_cursor.close()
-
-    if len(mysql_rows) != len(sqlite_rows):
-        print(
-            f"Error: Row count mismatch (MySQL: {len(mysql_rows)}, SQLite: {len(sqlite_rows)})"
-        )
-        return False
-
     mismatches = 0
+    row_count = 0
 
-    for row_idx, (mysql_row, sqlite_row) in enumerate(zip(mysql_rows, sqlite_rows)):
+    while True:
+        mysql_row = mysql_cursor.fetchone()
+        sqlite_row = sqlite_cursor.fetchone()
+
+        # Check if both cursors are exhausted
+        if mysql_row is None and sqlite_row is None:
+            break
+
+        # Check if one cursor is exhausted before the other
+        if mysql_row is None or sqlite_row is None:
+            print(
+                f"Error: Row count mismatch - one cursor exhausted before the other "
+                f"(row {row_count + 1})"
+            )
+            mysql_cursor.close()
+            sqlite_cursor.close()
+            return False
+
+        row_count += 1
         if len(mysql_row) != len(sqlite_row):
             print(
                 f"Error: Column count mismatch (MySQL: {len(mysql_row)}, SQLite: {len(sqlite_row)})"
@@ -217,11 +225,14 @@ def verify_row_by_row(mysql_cnx, sqlite_cnx) -> bool:
         if row_mismatch:
             mismatches += 1
 
+    mysql_cursor.close()
+    sqlite_cursor.close()
+
     if mismatches > 0:
         print(f"Error: Found {mismatches} row(s) with mismatches")
         return False
 
-    print(f"All {len(mysql_rows)} rows match")
+    print(f"All {row_count} rows match")
     return True
 
 
