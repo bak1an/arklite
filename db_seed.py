@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS devtable (
     id INT AUTO_INCREMENT,
     bigint_column BIGINT,
     datetime_column DATETIME,
-    float_column FLOAT,
+    float_column DOUBLE,
     string_column VARCHAR(255),
     blob_column BLOB,
     timestamp_column INT,
