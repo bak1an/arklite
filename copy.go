@@ -14,8 +14,6 @@ import (
 type RowData []any
 
 type CopierOptions struct {
-	Table          string
-	Partition      string
 	WriteBatchSize int
 	ReadBatchSize  int
 }
@@ -28,19 +26,14 @@ type Copier struct {
 	wg       sync.WaitGroup
 }
 
-func NewCopier(mysqlDb *sql.DB, sqliteDb *sql.DB, opts CopierOptions) (*Copier, error) {
-	schema, err := ReadSchema(mysqlDb, opts.Table, opts.Partition)
-	if err != nil {
-		return nil, err
-	}
-	cp := &Copier{
+func NewCopier(mysqlDb *sql.DB, sqliteDb *sql.DB, schema *Schema, opts CopierOptions) *Copier {
+	return &Copier{
 		mysqlDb:  mysqlDb,
 		sqliteDb: sqliteDb,
-		opts:     opts,
 		schema:   schema,
+		opts:     opts,
 		wg:       sync.WaitGroup{},
 	}
-	return cp, nil
 }
 
 func (c *Copier) CreateTable() error {

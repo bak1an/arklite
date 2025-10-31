@@ -21,13 +21,13 @@ type ColumnInfo struct {
 type Schema struct {
 	Table       string
 	Partition   string
+	Where       []string
 	IdColumn    string
 	Columns     []*ColumnInfo
 	columnNames []string
-	allColumns  string
 }
 
-func ReadSchema(db *sql.DB, table string, partition string) (*Schema, error) {
+func ReadSchema(db *sql.DB, table string, partition string, where []string) (*Schema, error) {
 	columnInfos, err := fetchColumnsInfo(db, table)
 	if err != nil {
 		return nil, err
@@ -41,8 +41,8 @@ func ReadSchema(db *sql.DB, table string, partition string) (*Schema, error) {
 		Columns:     columnInfos,
 		Partition:   partition,
 		IdColumn:    "id",
+		Where:       where,
 		columnNames: columnNames,
-		allColumns:  strings.Join(columnNames, ", "),
 	}
 	return schema, nil
 }
@@ -87,6 +87,13 @@ func (s *Schema) MySQLSelectQuery(limit int64) string {
 		sm.OrderBy(mysql.Quote(s.IdColumn)).Asc(),
 		sm.Limit(limit),
 	)
+
+	if len(s.Where) > 0 {
+		for _, whereClause := range s.Where {
+			q.Apply(sm.Where(mysql.Raw(whereClause)))
+		}
+	}
+
 	sql, _, err := q.Build(context.Background())
 	if err != nil {
 		return ""

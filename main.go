@@ -33,6 +33,7 @@ func main() {
 	sqliteFile := pflag.StringP("output", "o", "", "(required) SQLite file to write to")
 	forceOverwrite := pflag.BoolP("force", "f", false, "Force overwrite existing SQLite file")
 	partition := pflag.String("partition", "", "MySQL partition to copy")
+	where := pflag.StringArray("where", []string{}, "MySQL WHERE clause, can be used multiple times")
 	writeBatchSize := pflag.Int("write-batch", 10000, "Write batch size")
 	readBatchSize := pflag.Int("read-batch", 100000, "Read batch size")
 	preview := pflag.Bool("preview", false, "Preivew the SQL queries. Does not perform actual data copy.")
@@ -107,23 +108,24 @@ func main() {
 		os.Exit(1)
 	}
 
+	schema, err := ReadSchema(mysqlDb, *mysqlTable, *partition, *where)
+	if err != nil {
+		slog.Error("Error reading schema", "error", err)
+		os.Exit(1)
+	}
+
 	if *preview {
 		fmt.Println("Queries to be executed:")
-		schema, err := ReadSchema(mysqlDb, *mysqlTable, *partition)
-		if err != nil {
-			slog.Error("Error reading schema", "error", err)
-			os.Exit(1)
-		}
 		createTableQuery := schema.SQLiteCreateTableQuery()
 		selectQuery := schema.MySQLSelectQuery(int64(*readBatchSize))
 		fmt.Printf(
 			"\nWill create sqlite table in %s with:\n%s\n\n",
 			*sqliteFile, createTableQuery,
 		)
-		fmt.Printf("Will select data from MySQL with:\n%s\n\n", selectQuery)
+		fmt.Printf("Will select data from MySQL with:\n%s\n", selectQuery)
 
 		insertQuery := schema.SqliteInsertQuery()
-		fmt.Printf("Will insert data into SQLite with:\n%s\n\n", insertQuery)
+		fmt.Printf("Will insert data into SQLite with:\n%s\n", insertQuery)
 
 		fmt.Printf(
 			"Reads in batches of %d rows from MySQL and writes to SQLite in batches of %d rows.\n",
@@ -158,16 +160,10 @@ func main() {
 	}
 
 	copierOpts := CopierOptions{
-		Table:          *mysqlTable,
 		WriteBatchSize: *writeBatchSize,
 		ReadBatchSize:  *readBatchSize,
-		Partition:      *partition,
 	}
-	copier, err := NewCopier(mysqlDb, sqliteDb, copierOpts)
-	if err != nil {
-		slog.Error("Error creating copier", "error", err)
-		os.Exit(1)
-	}
+	copier := NewCopier(mysqlDb, sqliteDb, schema, copierOpts)
 
 	err = copier.CreateTable()
 	if err != nil {
