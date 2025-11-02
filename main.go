@@ -15,12 +15,36 @@ import (
 )
 
 const sqliteConfigQuery = `
-		PRAGMA journal_mode = OFF;
-		PRAGMA synchronous = 0;
-		PRAGMA cache_size = 1000000;
-		PRAGMA locking_mode = EXCLUSIVE;
-		PRAGMA temp_store = MEMORY;
-	`
+-- Disable journaling completely (most dangerous but fastest)
+PRAGMA journal_mode = OFF;
+
+-- Or use memory-based journaling if you want some crash recovery
+-- PRAGMA journal_mode = MEMORY;
+
+-- Disable synchronous writes (don't wait for disk to confirm writes)
+PRAGMA synchronous = OFF;
+
+-- Increase cache size (in pages, -ve numbers = KB)
+PRAGMA cache_size = -64000;  -- 64MB cache
+
+-- Use memory for temp tables/indexes
+PRAGMA temp_store = MEMORY;
+
+-- Disable automatic indexing
+PRAGMA automatic_index = OFF;
+
+-- Set larger page size for better performance (must be set before creating DB)
+PRAGMA page_size = 4096;
+
+-- Memory-mapped I/O (helps with large databases)
+PRAGMA mmap_size = 268435456;  -- 256MB
+
+-- Disable foreign key constraints if not needed
+PRAGMA foreign_keys = OFF;
+
+-- Disable checkpoint on WAL (if you ever switch to WAL mode)
+PRAGMA wal_autocheckpoint = 0;
+`
 
 func main() {
 	mysqlHost := pflag.StringP("host", "H", "localhost", "MySQL host")
