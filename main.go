@@ -93,7 +93,7 @@ func main() {
 		userPart += ":" + *mysqlPassword
 	}
 
-	mysqlUrl := fmt.Sprintf("%s@tcp(%s:%d)/%s", userPart, *mysqlHost, *mysqlPort, *mysqlDatabase)
+	mysqlUrl := fmt.Sprintf("%s@tcp(%s:%d)/%s?parseTime=true", userPart, *mysqlHost, *mysqlPort, *mysqlDatabase)
 
 	mysqlDb, err := sql.Open("mysql", mysqlUrl)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/stephenafamo/bob/dialect/mysql"
@@ -13,9 +14,10 @@ import (
 )
 
 type ColumnInfo struct {
-	name       string
-	mysqlType  string
-	sqliteType string
+	name        string
+	mysqlType   string
+	sqliteType  string
+	reflectType reflect.Type
 }
 
 type Schema struct {
@@ -191,9 +193,10 @@ func fetchColumnsInfo(db *sql.DB, table string) ([]*ColumnInfo, error) {
 	for i, column := range columnTypes {
 		columnType := column.DatabaseTypeName()
 		columnInfos[i] = &ColumnInfo{
-			name:       column.Name(),
-			mysqlType:  columnType,
-			sqliteType: sqliteType(columnType),
+			name:        column.Name(),
+			mysqlType:   columnType,
+			sqliteType:  sqliteType(columnType),
+			reflectType: column.ScanType(),
 		}
 	}
 	return columnInfos, nil

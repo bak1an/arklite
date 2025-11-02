@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"sync"
 	"time"
 
@@ -102,19 +103,33 @@ func (c *Copier) Copy() error {
 		rowsInBatch := 0
 		for rows.Next() {
 			row := make([]any, colsCount)
-			ptrs := make([]any, colsCount)
 			for i := range colsCount {
-				ptrs[i] = &row[i]
+				row[i] = reflect.New(c.schema.Columns[i].reflectType).Interface()
 			}
-			err := rows.Scan(ptrs...)
+			err := rows.Scan(row...)
 			if err != nil {
 				return err
 			}
 			rowsInBatch++
 
-			rowId := row[idColumnIndex].(int64)
-			if rowId > maxSeenId {
-				maxSeenId = rowId
+			switch row[idColumnIndex].(type) {
+			case *int64:
+				rowId := *row[idColumnIndex].(*int64)
+				if rowId > maxSeenId {
+					maxSeenId = rowId
+				}
+			case *int32:
+				rowId := int64(*row[idColumnIndex].(*int32))
+				if rowId > maxSeenId {
+					maxSeenId = rowId
+				}
+			case *int16:
+				rowId := int64(*row[idColumnIndex].(*int16))
+				if rowId > maxSeenId {
+					maxSeenId = rowId
+				}
+			default:
+				return fmt.Errorf("unknown id column type: %T", row[idColumnIndex])
 			}
 
 			rowsChan <- row

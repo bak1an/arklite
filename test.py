@@ -144,7 +144,7 @@ def verify_row_by_row(mysql_cnx, sqlite_cnx) -> bool:
                     mysql_str = mysql_val
                 elif hasattr(mysql_val, "isoformat"):
                     # MySQL datetime object - convert to string format matching SQLite
-                    mysql_str = mysql_val.strftime("%Y-%m-%d %H:%M:%S")
+                    mysql_str = mysql_val.strftime("%Y-%m-%d %H:%M:%S+00:00")
                 else:
                     mysql_str = str(mysql_val)
 
