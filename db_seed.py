@@ -15,7 +15,7 @@ import string
 
 # SQL query constants
 CREATE_TABLE_QUERY = """
-CREATE TABLE IF NOT EXISTS devtable (
+CREATE TABLE IF NOT EXISTS {table} (
     id INT AUTO_INCREMENT,
     bigint_column BIGINT,
     datetime_column DATETIME,
@@ -33,16 +33,16 @@ PARTITION BY RANGE (YEAR(datetime_column)) (
 """
 
 DROP_TABLE_QUERY = """
-DROP TABLE IF EXISTS devtable
+DROP TABLE IF EXISTS {table}
 """
 
 INSERT_DATA_QUERY = """
-INSERT INTO devtable (bigint_column, datetime_column, float_column, string_column, blob_column, timestamp_column)
+INSERT INTO {table} (bigint_column, datetime_column, float_column, string_column, blob_column, timestamp_column)
 VALUES (%s, %s, %s, %s, %s, %s)
 """
 
 COUNT_ROWS_QUERY = """
-SELECT COUNT(*) FROM devtable
+SELECT COUNT(*) FROM {table}
 """
 
 
@@ -72,6 +72,12 @@ def main() -> None:
         action="store_true",
         help="Drop the table before inserting data",
     )
+    parser.add_argument(
+        "--table",
+        "-t",
+        default="devtable",
+        help="Table to insert data into (default: devtable)",
+    )
     args = parser.parse_args()
     cnx = mysql.connector.connect(
         host="localhost",
@@ -84,10 +90,10 @@ def main() -> None:
 
     if args.drop:
         print("Dropping table...")
-        cursor.execute(DROP_TABLE_QUERY)
+        cursor.execute(DROP_TABLE_QUERY.format(table=args.table))
 
     # Create table
-    cursor.execute(CREATE_TABLE_QUERY)
+    cursor.execute(CREATE_TABLE_QUERY.format(table=args.table))
 
     # Insert random data in batches
     batch_size = 10000
@@ -151,7 +157,7 @@ def main() -> None:
             )
 
         # Insert entire batch at once
-        cursor.executemany(INSERT_DATA_QUERY, batch_data)
+        cursor.executemany(INSERT_DATA_QUERY.format(table=args.table), batch_data)
 
         # Print progress every batch
         print(f"Inserted {humanize_number(batch_end)} rows...")
@@ -159,9 +165,9 @@ def main() -> None:
     cnx.commit()
 
     # Count and print total rows
-    cursor.execute(COUNT_ROWS_QUERY)
+    cursor.execute(COUNT_ROWS_QUERY.format(table=args.table))
     count = cursor.fetchone()[0]
-    print(f"Total rows in devtable: {humanize_number(count)}")
+    print(f"Total rows in {args.table}: {humanize_number(count)}")
 
     cursor.close()
     cnx.close()
