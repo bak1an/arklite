@@ -30,6 +30,9 @@ local-build:
 	go build -v ${LDFLAGS} -o ${BINARY}
 
 linux-build:
+	CGO_ENABLED=1 \
+	CC="zig cc -O3 -target x86_64-linux-gnu" \
+	CXX="zig c++ -O3 -target x86_64-linux-gnu" \
 	GOOS=linux GOARCH=amd64 go build -v ${LDFLAGS} -o ${BINARY}
 
 linux: clean linux-build
