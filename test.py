@@ -75,6 +75,48 @@ def verify_row_count(mysql_cnx, sqlite_cnx) -> bool:
     return True
 
 
+def verify_types(sqlite_cnx) -> bool:
+    expected_types = tuple(
+        [
+            "integer",
+            "integer",
+            "text",
+            "real",
+            "text",
+            "blob",
+            "integer",
+        ]
+    )
+
+    query = """SELECT DISTINCT
+    typeof(id),
+    typeof(bigint_column),
+    typeof(datetime_column),
+    typeof(float_column),
+    typeof(string_column),
+    typeof(blob_column),
+    typeof(timestamp_column)
+    FROM devtable
+    """
+
+    cursor = sqlite_cnx.cursor()
+    cursor.execute(query)
+    result = cursor.fetchall()
+    cursor.close()
+
+    if len(result) != 1:
+        print(f"Error: Expected 1 row, got {len(result)}")
+        print(f"Result: {result}")
+        return False
+
+    if result[0] != expected_types:
+        print(f"Error: Type mismatch (expected {expected_types}, got {result[0]})")
+        return False
+
+    print(f"Types match: {expected_types}")
+    return True
+
+
 def verify_row_by_row(mysql_cnx, sqlite_cnx) -> bool:
     """Verify that all rows match between MySQL and SQLite."""
     mysql_cursor = mysql_cnx.cursor()
@@ -247,6 +289,9 @@ def main() -> None:
             sys.exit(1)
 
         if not verify_row_by_row(mysql_cnx, sqlite_cnx):
+            sys.exit(1)
+
+        if not verify_types(sqlite_cnx):
             sys.exit(1)
 
     finally:
