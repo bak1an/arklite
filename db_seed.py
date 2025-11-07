@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS {table} (
     string_column VARCHAR(255),
     blob_column BLOB,
     timestamp_column INT,
+    nullable_column INT,
     PRIMARY KEY (id, datetime_column)
 )
 PARTITION BY RANGE (YEAR(datetime_column)) (
@@ -37,8 +38,8 @@ DROP TABLE IF EXISTS {table}
 """
 
 INSERT_DATA_QUERY = """
-INSERT INTO {table} (bigint_column, datetime_column, float_column, string_column, blob_column, timestamp_column)
-VALUES (%s, %s, %s, %s, %s, %s)
+INSERT INTO {table} (bigint_column, datetime_column, float_column, string_column, blob_column, timestamp_column, nullable_column)
+VALUES (%s, %s, %s, %s, %s, %s, NULL)
 """
 
 COUNT_ROWS_QUERY = """

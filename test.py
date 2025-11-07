@@ -77,15 +77,7 @@ def verify_row_count(mysql_cnx, sqlite_cnx) -> bool:
 
 def verify_types(sqlite_cnx) -> bool:
     expected_types = tuple(
-        [
-            "integer",
-            "integer",
-            "text",
-            "real",
-            "text",
-            "blob",
-            "integer",
-        ]
+        ["integer", "integer", "text", "real", "text", "blob", "integer", "null"]
     )
 
     query = """SELECT DISTINCT
@@ -95,7 +87,8 @@ def verify_types(sqlite_cnx) -> bool:
     typeof(float_column),
     typeof(string_column),
     typeof(blob_column),
-    typeof(timestamp_column)
+    typeof(timestamp_column),
+    typeof(nullable_column)
     FROM devtable
     """
 
@@ -130,14 +123,14 @@ def verify_row_by_row(mysql_cnx, sqlite_cnx) -> bool:
     # Fetch rows lazily one by one, ordered by id
     mysql_query = """
     SELECT id, bigint_column, datetime_column, float_column,
-           string_column, blob_column, timestamp_column
+           string_column, blob_column, timestamp_column, nullable_column
     FROM devtable
     ORDER BY id
     """
 
     sqlite_query = """
     SELECT id, bigint_column, datetime_column, float_column,
-           string_column, blob_column, timestamp_column
+           string_column, blob_column, timestamp_column, nullable_column
     FROM devtable
     ORDER BY id
     """
