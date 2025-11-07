@@ -56,6 +56,7 @@ func main() {
 	mysqlTable := pflag.StringP("table", "t", "", "(required) MySQL table")
 	sqliteFile := pflag.StringP("output", "o", "", "(required) SQLite file to write to")
 	forceOverwrite := pflag.BoolP("force", "f", false, "Force overwrite existing SQLite file")
+	idColumn := pflag.String("id-column", "id", "MySQL ID column to use for pagination and ordering")
 	partition := pflag.String("partition", "", "MySQL partition to copy")
 	where := pflag.StringArray("where", []string{}, "MySQL WHERE clause, can be used multiple times")
 	writeBatchSize := pflag.Int("write-batch", 10000, "Write batch size")
@@ -132,7 +133,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	schema, err := ReadSchema(mysqlDb, *mysqlTable, *partition, *where)
+	schema, err := ReadSchema(mysqlDb, *mysqlTable, *partition, *where, *idColumn)
 	if err != nil {
 		slog.Error("Error reading schema", "error", err)
 		os.Exit(1)

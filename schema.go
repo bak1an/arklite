@@ -29,20 +29,31 @@ type Schema struct {
 	columnNames []string
 }
 
-func ReadSchema(db *sql.DB, table string, partition string, where []string) (*Schema, error) {
+func ReadSchema(db *sql.DB, table string, partition string, where []string, idColumn string) (*Schema, error) {
 	columnInfos, err := fetchColumnsInfo(db, table)
 	if err != nil {
 		return nil, err
 	}
+
 	columnNames := make([]string, len(columnInfos))
+	idColumnExists := false
+
 	for i, column := range columnInfos {
+		if column.name == idColumn {
+			idColumnExists = true
+		}
 		columnNames[i] = column.name
 	}
+
+	if !idColumnExists {
+		return nil, fmt.Errorf("id column %s not found in table %s", idColumn, table)
+	}
+
 	schema := &Schema{
 		Table:       table,
 		Columns:     columnInfos,
 		Partition:   partition,
-		IdColumn:    "id",
+		IdColumn:    idColumn,
 		Where:       where,
 		columnNames: columnNames,
 	}
@@ -199,5 +210,6 @@ func fetchColumnsInfo(db *sql.DB, table string) ([]*ColumnInfo, error) {
 			reflectType: column.ScanType(),
 		}
 	}
+
 	return columnInfos, nil
 }
