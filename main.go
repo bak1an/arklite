@@ -63,6 +63,7 @@ func main() {
 	where := pflag.StringArray("where", []string{}, "MySQL WHERE clause, can be used multiple times")
 	onlyColumns := pflag.String("only-columns", "", "Copy only these columns, comma separated. Conflicts with --exclude-columns.")
 	excludeColumns := pflag.String("exclude-columns", "", "Exclude these columns, comma separated. Conflicts with --only-columns.")
+	limit := pflag.Uint64("limit", 0, "Limit the number of rows to copy. 0 means no limit.")
 	writeBatchSize := pflag.Int("write-batch", 10000, "Write batch size")
 	readBatchSize := pflag.Int("read-batch", 100000, "Read batch size")
 	preview := pflag.Bool("preview", false, "Preivew the SQL queries. Does not perform actual data copy.")
@@ -222,6 +223,7 @@ func main() {
 	copierOpts := CopierOptions{
 		WriteBatchSize: *writeBatchSize,
 		ReadBatchSize:  *readBatchSize,
+		Limit:          *limit,
 	}
 	copier := NewCopier(mysqlDb, sqliteDb, schema, copierOpts)
 

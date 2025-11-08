@@ -17,6 +17,7 @@ type RowData []any
 type CopierOptions struct {
 	WriteBatchSize int
 	ReadBatchSize  int
+	Limit          uint64
 }
 
 type Copier struct {
@@ -73,6 +74,7 @@ func (c *Copier) Copy() error {
 	}()
 
 	var maxSeenId int64 = 0
+	var totalRowsRead uint64 = 0
 	colsCount := len(c.schema.Columns)
 	colsNames := make([]string, colsCount)
 	for i := range colsCount {
@@ -86,6 +88,11 @@ func (c *Copier) Copy() error {
 
 	var batchStartAt time.Time
 	var batchDuration time.Duration
+
+	if c.opts.Limit > 0 && c.opts.Limit < uint64(c.opts.ReadBatchSize) {
+		slog.Info("Limit is less than read batch size, setting read batch size to limit", "limit", c.opts.Limit, "read_batch_size", c.opts.ReadBatchSize)
+		c.opts.ReadBatchSize = int(c.opts.Limit)
+	}
 
 	query := c.schema.MySQLSelectQuery(int64(c.opts.ReadBatchSize))
 	stmt, err := c.mysqlDb.Prepare(query)
@@ -111,6 +118,7 @@ func (c *Copier) Copy() error {
 				return err
 			}
 			rowsInBatch++
+			totalRowsRead++
 
 			switch row[idColumnIndex].(type) {
 			case *int64:
@@ -133,6 +141,12 @@ func (c *Copier) Copy() error {
 			}
 
 			rowsChan <- row
+
+			if c.opts.Limit > 0 && totalRowsRead >= c.opts.Limit {
+				slog.Info("Limit reached, stopping copy", "limit", c.opts.Limit, "total_rows_read", totalRowsRead)
+				rows.Close()
+				return nil
+			}
 		}
 		rows.Close()
 		if err := rows.Err(); err != nil {
