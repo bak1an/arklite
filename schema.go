@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/stephenafamo/bob/dialect/mysql"
@@ -21,28 +22,25 @@ type ColumnInfo struct {
 }
 
 type Schema struct {
-	Table       string
-	Partition   string
-	Where       []string
-	IdColumn    string
-	Columns     []*ColumnInfo
-	columnNames []string
+	Table     string
+	Partition string
+	Where     []string
+	IdColumn  string
+	Columns   []*ColumnInfo
 }
 
-func ReadSchema(db *sql.DB, table string, partition string, where []string, idColumn string) (*Schema, error) {
-	columnInfos, err := fetchColumnsInfo(db, table)
+func ReadSchema(db *sql.DB, table string, partition string, where []string, idColumn string, onlyColumns []string, excludeColumns []string) (*Schema, error) {
+	columnInfos, err := fetchColumnsInfo(db, table, onlyColumns, excludeColumns)
 	if err != nil {
 		return nil, err
 	}
 
-	columnNames := make([]string, len(columnInfos))
 	idColumnExists := false
 
-	for i, column := range columnInfos {
+	for _, column := range columnInfos {
 		if column.name == idColumn {
 			idColumnExists = true
 		}
-		columnNames[i] = column.name
 	}
 
 	if !idColumnExists {
@@ -50,14 +48,21 @@ func ReadSchema(db *sql.DB, table string, partition string, where []string, idCo
 	}
 
 	schema := &Schema{
-		Table:       table,
-		Columns:     columnInfos,
-		Partition:   partition,
-		IdColumn:    idColumn,
-		Where:       where,
-		columnNames: columnNames,
+		Table:     table,
+		Columns:   columnInfos,
+		Partition: partition,
+		IdColumn:  idColumn,
+		Where:     where,
 	}
 	return schema, nil
+}
+
+func (s *Schema) ColumnNames() []string {
+	result := make([]string, len(s.Columns))
+	for i, column := range s.Columns {
+		result[i] = column.name
+	}
+	return result
 }
 
 func (s *Schema) ColumnIndex(name string) int {
@@ -71,8 +76,8 @@ func (s *Schema) ColumnIndex(name string) int {
 
 func (s *Schema) SqliteInsertQuery() string {
 	q := sqlite.Insert(
-		im.Into(sqlite.Quote(s.Table), s.columnNames...),
-		im.Values(sqlite.Placeholder(uint(len(s.columnNames)))),
+		im.Into(sqlite.Quote(s.Table), s.ColumnNames()...),
+		im.Values(sqlite.Placeholder(uint(len(s.Columns)))),
 	)
 
 	sql, _, err := q.Build(context.Background())
@@ -88,9 +93,9 @@ func (s *Schema) MySQLSelectQuery(limit int64) string {
 		from = from.Partition(s.Partition)
 	}
 
-	cols := make([]any, len(s.columnNames))
-	for i, column := range s.columnNames {
-		cols[i] = mysql.Quote(column)
+	cols := make([]any, len(s.Columns))
+	for i, column := range s.Columns {
+		cols[i] = mysql.Quote(column.name)
 	}
 
 	q := mysql.Select(
@@ -177,7 +182,7 @@ func sqliteType(mysqlType string) string {
 	return "TEXT"
 }
 
-func fetchColumnsInfo(db *sql.DB, table string) ([]*ColumnInfo, error) {
+func fetchColumnsInfo(db *sql.DB, table string, onlyColumns []string, excludeColumns []string) ([]*ColumnInfo, error) {
 	q := mysql.Select(
 		sm.From(mysql.Quote(table)),
 		sm.Where(mysql.Raw("1 = 0")),
@@ -200,16 +205,58 @@ func fetchColumnsInfo(db *sql.DB, table string) ([]*ColumnInfo, error) {
 		return nil, err
 	}
 
-	columnInfos := make([]*ColumnInfo, len(columnTypes))
-	for i, column := range columnTypes {
+	if len(onlyColumns) > 0 {
+		result := make([]*ColumnInfo, 0, len(onlyColumns))
+		for _, column := range onlyColumns {
+			columnInfo := getColumnInfo(columnTypes, column)
+			if columnInfo != nil {
+				result = append(result, columnInfo)
+			} else {
+				return nil, fmt.Errorf("column %s not found in table %s", column, table)
+			}
+		}
+		return result, nil
+	}
+
+	result := make([]*ColumnInfo, 0, len(columnTypes))
+	for _, column := range columnTypes {
+		name := column.Name()
+		if slices.Contains(excludeColumns, name) {
+			excludeColumns = removeItem(excludeColumns, name)
+			continue
+		}
 		columnType := column.DatabaseTypeName()
-		columnInfos[i] = &ColumnInfo{
-			name:        column.Name(),
+		result = append(result, &ColumnInfo{
+			name:        name,
 			mysqlType:   columnType,
 			sqliteType:  sqliteType(columnType),
 			reflectType: column.ScanType(),
-		}
+		})
 	}
 
-	return columnInfos, nil
+	if len(excludeColumns) > 0 {
+		return nil, fmt.Errorf("can not exclude non existing columns %s", strings.Join(excludeColumns, ", "))
+	}
+
+	return result, nil
+}
+
+func removeItem[T comparable](slice []T, item T) []T {
+	return slices.DeleteFunc(slice, func(t T) bool {
+		return t == item
+	})
+}
+
+func getColumnInfo(columnTypes []*sql.ColumnType, name string) *ColumnInfo {
+	for _, column := range columnTypes {
+		if column.Name() == name {
+			return &ColumnInfo{
+				name:        column.Name(),
+				mysqlType:   column.DatabaseTypeName(),
+				sqliteType:  sqliteType(column.DatabaseTypeName()),
+				reflectType: column.ScanType(),
+			}
+		}
+	}
+	return nil
 }

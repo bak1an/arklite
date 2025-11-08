@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
+	"strings"
 
 	"github.com/bak1an/arklite/config"
 	"github.com/spf13/pflag"
@@ -59,6 +61,8 @@ func main() {
 	idColumn := pflag.String("id-column", "id", "MySQL ID column to use for pagination and ordering")
 	partition := pflag.String("partition", "", "MySQL partition to copy")
 	where := pflag.StringArray("where", []string{}, "MySQL WHERE clause, can be used multiple times")
+	onlyColumns := pflag.String("only-columns", "", "Copy only these columns, comma separated. Conflicts with --exclude-columns.")
+	excludeColumns := pflag.String("exclude-columns", "", "Exclude these columns, comma separated. Conflicts with --only-columns.")
 	writeBatchSize := pflag.Int("write-batch", 10000, "Write batch size")
 	readBatchSize := pflag.Int("read-batch", 100000, "Read batch size")
 	preview := pflag.Bool("preview", false, "Preivew the SQL queries. Does not perform actual data copy.")
@@ -68,6 +72,12 @@ func main() {
 	pflag.CommandLine.SortFlags = false
 
 	pflag.Parse()
+
+	if *onlyColumns != "" && *excludeColumns != "" {
+		pflag.Usage()
+		fmt.Println("Conflicting flags: --only-columns and --exclude-columns. Only one can be used at a time.")
+		os.Exit(1)
+	}
 
 	if *askPassword {
 		if *mysqlPassword == "" {
@@ -133,7 +143,32 @@ func main() {
 		os.Exit(1)
 	}
 
-	schema, err := ReadSchema(mysqlDb, *mysqlTable, *partition, *where, *idColumn)
+	var onlyColumnsArray []string
+	var excludeColumnsArray []string
+
+	if *onlyColumns != "" {
+		onlyColumnsArray = strings.Split(*onlyColumns, ",")
+		for i, column := range onlyColumnsArray {
+			onlyColumnsArray[i] = strings.TrimSpace(column)
+		}
+
+		if !slices.Contains(onlyColumnsArray, *idColumn) {
+			slog.Error("ID column not found in --only-columns", "id-column", *idColumn, "available-columns", strings.Join(onlyColumnsArray, ", "))
+			os.Exit(1)
+		}
+
+	} else if *excludeColumns != "" {
+		excludeColumnsArray = strings.Split(*excludeColumns, ",")
+		for i, column := range excludeColumnsArray {
+			excludeColumnsArray[i] = strings.TrimSpace(column)
+			if excludeColumnsArray[i] == *idColumn {
+				slog.Error("Can not exclude ID column", "id-column", *idColumn, "excluded-columns", strings.Join(excludeColumnsArray, ", "))
+				os.Exit(1)
+			}
+		}
+	}
+
+	schema, err := ReadSchema(mysqlDb, *mysqlTable, *partition, *where, *idColumn, onlyColumnsArray, excludeColumnsArray)
 	if err != nil {
 		slog.Error("Error reading schema", "error", err)
 		os.Exit(1)
