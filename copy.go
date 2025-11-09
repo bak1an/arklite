@@ -18,6 +18,7 @@ type CopierOptions struct {
 	WriteBatchSize int
 	ReadBatchSize  int
 	Limit          uint64
+	Progress       ProgressRenderer
 }
 
 type Copier struct {
@@ -101,6 +102,9 @@ func (c *Copier) Copy() error {
 	}
 	defer stmt.Close()
 
+	c.opts.Progress.RenderBlank()
+	defer c.opts.Progress.Finish()
+
 	for {
 		batchStartAt = time.Now()
 		rows, err := stmt.Query(maxSeenId)
@@ -147,6 +151,13 @@ func (c *Copier) Copy() error {
 				rows.Close()
 				return nil
 			}
+
+			if totalRowsRead%1000 == 0 {
+				err = c.opts.Progress.Add64(1000)
+				if err != nil {
+					return err
+				}
+			}
 		}
 		rows.Close()
 		if err := rows.Err(); err != nil {
@@ -156,7 +167,7 @@ func (c *Copier) Copy() error {
 		count, suffix := humanize.ComputeSI(float64(rowsInBatch))
 		rowsInBatchHumanized := fmt.Sprintf("%d%s", int(count), suffix)
 		batchDuration = time.Since(batchStartAt)
-		slog.Info(
+		slog.Debug(
 			"Batch read from MySQL",
 			"batch_duration", batchDuration,
 			"rows_in_batch", rowsInBatchHumanized,

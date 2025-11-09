@@ -7,8 +7,10 @@ import (
 	"os"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/bak1an/arklite/config"
+	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/pflag"
 	"golang.org/x/term"
 
@@ -48,6 +50,26 @@ PRAGMA foreign_keys = OFF;
 PRAGMA wal_autocheckpoint = 0;
 `
 
+type ProgressRenderer interface {
+	Add64(count int64) error
+	Finish() error
+	RenderBlank() error
+}
+
+type NoopProgressBar struct{}
+
+func (n *NoopProgressBar) Add64(count int64) error {
+	return nil
+}
+
+func (n *NoopProgressBar) Finish() error {
+	return nil
+}
+
+func (n *NoopProgressBar) RenderBlank() error {
+	return nil
+}
+
 func main() {
 	mysqlHost := pflag.StringP("host", "H", "localhost", "MySQL host")
 	mysqlPort := pflag.IntP("port", "P", 3306, "MySQL port")
@@ -66,6 +88,7 @@ func main() {
 	limit := pflag.Uint64("limit", 0, "Limit the number of rows to copy. 0 means no limit.")
 	writeBatchSize := pflag.Int("write-batch", 10000, "Write batch size")
 	readBatchSize := pflag.Int("read-batch", 100000, "Read batch size")
+	noProgress := pflag.Bool("no-progress", false, "Do not show progress bar")
 	preview := pflag.Bool("preview", false, "Preivew the SQL queries. Does not perform actual data copy.")
 	verbose := pflag.Bool("verbose", false, "Verbose output")
 	version := pflag.BoolP("version", "v", false, "Print version info")
@@ -220,10 +243,33 @@ func main() {
 		os.Exit(1)
 	}
 
+	var progress ProgressRenderer
+	if *noProgress {
+		progress = &NoopProgressBar{}
+	} else {
+		progress = progressbar.NewOptions64(
+			-1,
+			progressbar.OptionSetDescription("Copying rows"),
+			progressbar.OptionFullWidth(),
+			progressbar.OptionShowIts(),
+			progressbar.OptionSetItsString("rows"),
+			progressbar.OptionShowCount(),
+			progressbar.OptionUseANSICodes(true),
+			progressbar.OptionThrottle(time.Second),
+			progressbar.OptionSetElapsedTime(true),
+			progressbar.OptionSetPredictTime(true),
+			progressbar.OptionOnCompletion(func() {
+				fmt.Fprint(os.Stderr, "\n")
+			}),
+			progressbar.OptionSetWriter(os.Stderr),
+		)
+	}
+
 	copierOpts := CopierOptions{
 		WriteBatchSize: *writeBatchSize,
 		ReadBatchSize:  *readBatchSize,
 		Limit:          *limit,
+		Progress:       progress,
 	}
 	copier := NewCopier(mysqlDb, sqliteDb, schema, copierOpts)
 
