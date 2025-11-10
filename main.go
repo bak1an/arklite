@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/pflag"
 	"golang.org/x/term"
 
+	"github.com/go-sql-driver/mysql"
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -89,7 +90,7 @@ func main() {
 	writeBatchSize := pflag.Int("write-batch", 10000, "Write batch size")
 	readBatchSize := pflag.Int("read-batch", 100000, "Read batch size")
 	noProgress := pflag.Bool("no-progress", false, "Do not show progress bar")
-	preview := pflag.Bool("preview", false, "Preivew the SQL queries. Does not perform actual data copy.")
+	preview := pflag.Bool("preview", false, "Preview the SQL queries. Does not perform actual data copy.")
 	verbose := pflag.Bool("verbose", false, "Verbose output")
 	version := pflag.BoolP("version", "v", false, "Print version info")
 
@@ -147,14 +148,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	userPart := *mysqlUser
-	if *mysqlPassword != "" {
-		userPart += ":" + *mysqlPassword
+	mysqlConfig := &mysql.Config{
+		User:      *mysqlUser,
+		Passwd:    *mysqlPassword,
+		Net:       "tcp",
+		Addr:      fmt.Sprintf("%s:%d", *mysqlHost, *mysqlPort),
+		DBName:    *mysqlDatabase,
+		ParseTime: true,
 	}
 
-	mysqlUrl := fmt.Sprintf("%s@tcp(%s:%d)/%s?parseTime=true", userPart, *mysqlHost, *mysqlPort, *mysqlDatabase)
-
-	mysqlDb, err := sql.Open("mysql", mysqlUrl)
+	mysqlDb, err := sql.Open("mysql", mysqlConfig.FormatDSN())
 	if err != nil {
 		slog.Error("Error connecting to MySQL", "error", err)
 		os.Exit(1)

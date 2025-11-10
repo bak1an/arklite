@@ -126,7 +126,7 @@ func (s *Schema) SQLiteCreateTableQuery() string {
 	columns := make([]string, len(s.Columns))
 	for i, columnInfo := range s.Columns {
 		columns[i] = fmt.Sprintf("  %s %s", sqlite.Quote(columnInfo.name), columnInfo.sqliteType)
-		if columnInfo.name == "id" {
+		if columnInfo.name == s.IdColumn {
 			columns[i] += " PRIMARY KEY AUTOINCREMENT"
 		}
 	}

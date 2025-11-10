@@ -287,6 +287,8 @@ def main() -> None:
         if not verify_types(sqlite_cnx):
             sys.exit(1)
 
+        print("All tests ok")
+
     finally:
         mysql_cnx.close()
         sqlite_cnx.close()

@@ -74,13 +74,9 @@ func (c *Copier) Copy() error {
 
 	}()
 
-	var maxSeenId int64 = 0
+	var maxSeenId uint64 = 0
 	var totalRowsRead uint64 = 0
 	colsCount := len(c.schema.Columns)
-	colsNames := make([]string, colsCount)
-	for i := range colsCount {
-		colsNames[i] = c.schema.Columns[i].name
-	}
 
 	idColumnIndex := c.schema.ColumnIndex(c.schema.IdColumn)
 	if idColumnIndex == -1 {
@@ -126,17 +122,42 @@ func (c *Copier) Copy() error {
 
 			switch row[idColumnIndex].(type) {
 			case *int64:
-				rowId := *row[idColumnIndex].(*int64)
+				rowId := uint64(*row[idColumnIndex].(*int64))
 				if rowId > maxSeenId {
 					maxSeenId = rowId
 				}
 			case *int32:
-				rowId := int64(*row[idColumnIndex].(*int32))
+				rowId := uint64(*row[idColumnIndex].(*int32))
 				if rowId > maxSeenId {
 					maxSeenId = rowId
 				}
 			case *int16:
-				rowId := int64(*row[idColumnIndex].(*int16))
+				rowId := uint64(*row[idColumnIndex].(*int16))
+				if rowId > maxSeenId {
+					maxSeenId = rowId
+				}
+			case *int8:
+				rowId := uint64(*row[idColumnIndex].(*int8))
+				if rowId > maxSeenId {
+					maxSeenId = rowId
+				}
+			case *uint64:
+				rowId := *row[idColumnIndex].(*uint64)
+				if rowId > maxSeenId {
+					maxSeenId = rowId
+				}
+			case *uint32:
+				rowId := uint64(*row[idColumnIndex].(*uint32))
+				if rowId > maxSeenId {
+					maxSeenId = rowId
+				}
+			case *uint16:
+				rowId := uint64(*row[idColumnIndex].(*uint16))
+				if rowId > maxSeenId {
+					maxSeenId = rowId
+				}
+			case *uint8:
+				rowId := uint64(*row[idColumnIndex].(*uint8))
 				if rowId > maxSeenId {
 					maxSeenId = rowId
 				}
