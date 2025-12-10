@@ -8,8 +8,8 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.32
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/spf13/pflag v1.0.10
-	github.com/stephenafamo/bob v0.41.1
-	golang.org/x/term v0.36.0
+	github.com/stephenafamo/bob v0.42.0
+	golang.org/x/term v0.38.0
 )
 
 require (
@@ -23,7 +23,7 @@ require (
 	go.uber.org/nilaway v0.0.0-20251107192516-561521d33d7b // indirect
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/sys v0.37.0 // indirect
+	golang.org/x/sys v0.39.0 // indirect
 	golang.org/x/telemetry v0.0.0-20251008203120-078029d740a8 // indirect
 	golang.org/x/tools v0.38.0 // indirect
 )
