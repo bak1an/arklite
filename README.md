@@ -14,9 +14,9 @@ When:
 
 You might want to archive not needed data to some cold storage and cleanup original table in MySQL.
 
-This tool can help with archival part. Just like percona's [pt-archiver](https://docs.percona.com/percona-toolkit/pt-archiver.html) but smaller and with SQLite for output files.
+This tool can help with the archival part. Just like percona's [pt-archiver](https://docs.percona.com/percona-toolkit/pt-archiver.html) but smaller and with SQLite for output files.
 
-Deletion of archived rows from MySQL is up to you (at least in this version) as this can be tricky when under load and there are many methods of doing it; see pt-archiver's help page for approximate list of things that can go wrong, I can also remember a few stories.
+Deletion of archived rows from MySQL is up to you (at least in this version), as this can be tricky when under load and there are many methods of doing it. See pt-archiver's help page for an approximate list of things that can go wrong.
 
 SQLite was chosen as output format as it is stable, portable and can be easily queried from any language or even bash script if needed.
 
@@ -36,10 +36,10 @@ Or download a binary from releases page.
 arklite -u <user> -d <database> -t <table> -o <output.sqlite>
 ```
 
-It will read table schema from MySQL and will create _similar_ schema for SQLite.
+It will read the table schema from MySQL and will create a _similar_ schema for SQLite.
 
 SQLite table will have the same columns, similar types (where possible) and an index on id column.
-All the rest of indexes and constraints seen in MySQL table will be ignored.
+All the rest of indexes and constraints seen in the MySQL table will be ignored.
 
 Give it `--preview` flag to dry run and see queries it is going to execute without doing anything.
 
@@ -100,7 +100,7 @@ arklite -u root -d mydb -t users -o users.sqlite
 
 # With filtering and limit
 arklite -u root -d mydb -t users -o users.sqlite \
-  --where "created_at > '2024-01-01'" \
+  --where "created_at > '2025-01-01'" \
   --limit 10000
 
 # Copy only specific columns
