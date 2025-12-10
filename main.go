@@ -149,12 +149,13 @@ func main() {
 	}
 
 	mysqlConfig := &mysql.Config{
-		User:      *mysqlUser,
-		Passwd:    *mysqlPassword,
-		Net:       "tcp",
-		Addr:      fmt.Sprintf("%s:%d", *mysqlHost, *mysqlPort),
-		DBName:    *mysqlDatabase,
-		ParseTime: true,
+		User:                 *mysqlUser,
+		Passwd:               *mysqlPassword,
+		Net:                  "tcp",
+		Addr:                 fmt.Sprintf("%s:%d", *mysqlHost, *mysqlPort),
+		DBName:               *mysqlDatabase,
+		ParseTime:            true,
+		AllowNativePasswords: true,
 	}
 
 	mysqlDb, err := sql.Open("mysql", mysqlConfig.FormatDSN())
