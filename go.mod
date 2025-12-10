@@ -20,7 +20,7 @@ require (
 	github.com/qdm12/reprint v0.0.0-20200326205758-722754a53494 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/stephenafamo/scan v0.7.0 // indirect
-	go.uber.org/nilaway v0.0.0-20250821055425-361559d802f0 // indirect
+	go.uber.org/nilaway v0.0.0-20251107192516-561521d33d7b // indirect
 	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.37.0 // indirect
