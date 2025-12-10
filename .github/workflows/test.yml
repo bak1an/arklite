@@ -1,0 +1,54 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    services:
+      mysql:
+        image: mysql:8
+        env:
+          MYSQL_ROOT_PASSWORD: devrootpassword
+          MYSQL_DATABASE: devdb
+          MYSQL_USER: devuser
+          MYSQL_PASSWORD: devpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set up Go stable
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Check go formatting
+        run: |
+          make fmt
+          git diff --exit-code
+
+      - name: Run golang checks and tests
+        run: make check
+
+      - name: Seed test database
+        run: ./db_seed.py --count 100000 --table devtable
+
+      - name: Run external tests
+        run: ./test.py
