@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bak1an/arklite/config"
+	buildInfo "github.com/bak1an/arklite/version"
 	"github.com/schollz/progressbar/v3"
 	"github.com/spf13/pflag"
 	"golang.org/x/term"
@@ -118,9 +118,9 @@ func main() {
 	}
 
 	if *version {
-		buildInfo := config.GetBuildInfo()
-		fmt.Printf("arklite %s-%s\n", buildInfo.GitBranch, buildInfo.GitRev)
-		fmt.Printf("build on %s with go %s\n", buildInfo.BuildTime, buildInfo.GoVersion)
+		vv := buildInfo.GetBuildInfo()
+		fmt.Printf("arklite %s (%s-%s)\n", vv.GitTag, vv.GitBranch, vv.GitRev)
+		fmt.Printf("build on %s with go %s\n", vv.BuildTime, vv.GoVersion)
 		os.Exit(0)
 	}
 

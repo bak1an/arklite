@@ -4,8 +4,9 @@ PKG=github.com/bak1an/arklite
 BUILD=$(shell date +%FT%T%z)
 GIT_REV=$(shell git rev-parse HEAD)
 GIT_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
+GIT_TAG=$(shell git describe --tags --abbrev=0)
 
-LDFLAGS=-ldflags "-X ${PKG}/config.build=${BUILD} -X ${PKG}/config.gitRev=${GIT_REV} -X ${PKG}/config.gitBranch=${GIT_BRANCH}"
+LDFLAGS=-ldflags "-X ${PKG}/version.build=${BUILD} -X ${PKG}/version.gitRev=${GIT_REV} -X ${PKG}/version.gitBranch=${GIT_BRANCH} -X ${PKG}/version.gitTag=${GIT_TAG}"
 
 .DEFAULT_GOAL := build
 
