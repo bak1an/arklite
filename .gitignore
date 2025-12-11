@@ -31,7 +31,9 @@ go.work.sum
 # .idea/
 # .vscode/
 
-tmp
+tmp/*
 !tmp/.gitkeep
 
 arklite
+dist/*
+!dist/.gitkeep
