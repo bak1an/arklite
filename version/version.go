@@ -8,11 +8,11 @@ var gitBranch = "Unknown"
 var gitTag = "Unknown"
 
 type BuildInfo struct {
-	BuildTime string `json:"build_time"`
-	GitBranch string `json:"git_branch"`
-	GitRev    string `json:"git_rev"`
-	GoVersion string `json:"go_version"`
-	GitTag    string `json:"git_tag"`
+	BuildTime string
+	GitBranch string
+	GitRev    string
+	GoVersion string
+	GitTag    string
 }
 
 func GetBuildInfo() BuildInfo {
