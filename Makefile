@@ -45,8 +45,8 @@ linux-arm64-build:
 	GOOS=linux GOARCH=arm64 go build -v ${BUILDFLAGS} ${LDFLAGS} -o ./dist/arklite-linux-arm64
 
 dist-gzip:
-	cd ./dist && tar -czf arklite-linux-amd64.tar.gz arklite-linux-amd64
-	cd ./dist && tar -czf arklite-linux-arm64.tar.gz arklite-linux-arm64
+	cd ./dist && tar --no-xattrs --disable-copyfile -czf arklite-linux-amd64.tar.gz arklite-linux-amd64
+	cd ./dist && tar --no-xattrs --disable-copyfile -czf arklite-linux-arm64.tar.gz arklite-linux-arm64
 
 dist-sha256:
 	cd ./dist && sha256sum arklite-linux-amd64.tar.gz > arklite-linux-amd64.tar.gz.sha256
