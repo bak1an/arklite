@@ -6,7 +6,8 @@ GIT_REV=$(shell git rev-parse HEAD)
 GIT_BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 GIT_TAG=$(shell git describe --tags --abbrev=0)
 
-LDFLAGS=-ldflags "-X ${PKG}/version.build=${BUILD} -X ${PKG}/version.gitRev=${GIT_REV} -X ${PKG}/version.gitBranch=${GIT_BRANCH} -X ${PKG}/version.gitTag=${GIT_TAG}"
+LDFLAGS=-ldflags "-s -w -X ${PKG}/version.build=${BUILD} -X ${PKG}/version.gitRev=${GIT_REV} -X ${PKG}/version.gitBranch=${GIT_BRANCH} -X ${PKG}/version.gitTag=${GIT_TAG}"
+BUILDFLAGS=-trimpath
 
 .DEFAULT_GOAL := build
 
@@ -28,13 +29,13 @@ clean:
 	if [ -f ${BINARY} ] ; then rm ${BINARY} ; fi
 
 local-build:
-	go build -v ${LDFLAGS} -o ${BINARY}
+	go build ${BUILDFLAGS} -v ${LDFLAGS} -o ${BINARY}
 
 linux-build:
 	CGO_ENABLED=1 \
-	CC="zig cc -O3 -target x86_64-linux-gnu" \
-	CXX="zig c++ -O3 -target x86_64-linux-gnu" \
-	GOOS=linux GOARCH=amd64 go build -v ${LDFLAGS} -o ${BINARY}
+	CC="zig cc -O3 -target x86_64-linux-musl -lc" \
+	CXX="zig c++ -O3 -target x86_64-linux-musl -lc" \
+	GOOS=linux GOARCH=amd64 go build -v ${BUILDFLAGS} ${LDFLAGS} -o ${BINARY}
 
 linux: clean linux-build
 

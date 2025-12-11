@@ -106,7 +106,6 @@ def verify_types(sqlite_cnx) -> bool:
         print(f"Error: Type mismatch (expected {expected_types}, got {result[0]})")
         return False
 
-    print(f"Types match: {expected_types}")
     return True
 
 
