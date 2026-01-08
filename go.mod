@@ -6,7 +6,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/mattn/go-sqlite3 v1.14.33
-	github.com/schollz/progressbar/v3 v3.18.0
+	github.com/schollz/progressbar/v3 v3.19.0
 	github.com/spf13/pflag v1.0.10
 	github.com/stephenafamo/bob v0.42.0
 	golang.org/x/term v0.38.0
