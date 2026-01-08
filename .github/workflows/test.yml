@@ -37,7 +37,7 @@ jobs:
           go-version: stable
 
       - name: Check out
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check go formatting
         run: |
