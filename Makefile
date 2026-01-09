@@ -11,6 +11,8 @@ BUILDFLAGS=-trimpath
 
 .DEFAULT_GOAL := build
 
+.PHONY: fmt test vet nils check clean local-build linux-amd64-build linux-arm64-build dist-gzip dist-sha256 dist build
+
 fmt:
 	go fmt ./... && go tool goimports -w .
 
